@@ -25,7 +25,7 @@ _HelloID-Conn-Prov-Target-Freshservice-Employee-Onboarding_ is a _target_ connec
 
 | Endpoint     | Description |
 | ------------ | ----------- |
-| /api/v2/onboarding_requests | Gets and created the onboarding requests (GET, POST) |
+| /api/v2/onboarding_requests | Gets and created the onboarding requests (POST) |
 | /api/v2/locations | Gets the locations (GET) |
 | /api/v2/departments | Gets and creates the departments (GET, POST)  |
 | /api/v2/requesters | Gets the requesters (GET) |
