@@ -1,7 +1,7 @@
 #############################################
 # HelloID-Conn-Prov-Target-Freshservice-Employee-Onboarding
 #
-# Version: 1.0.0
+# Version: 1.0.1
 #############################################
 # Initialize default values
 $config = $configuration | ConvertFrom-Json
@@ -57,47 +57,72 @@ function Resolve-FreshserviceError {
 
 try {
     # Process
-    if (-not ($dryRun -eq $true)) {
-        Write-Verbose "Creating [$($rRef.SourceData.count)] resources"
-        <# Resource creation preview uses a timeout of 30 seconds
-            while actual run has a timeout of 10 minutes #>
-        $headers = [System.Collections.Generic.Dictionary[string, string]]::new()
-        $headers.Add("Authorization", "Basic $($config.authorizationToken)")
-        $headers.Add("Content-Type", "application/json; charset=utf-8")
-        $headers.Add("Accepts", "application/json; charset=utf-8")
 
+    Write-Verbose "Creating [$($rRef.SourceData.count)] resources"
+    <# Resource creation preview uses a timeout of 30 seconds
+            while actual run has a timeout of 10 minutes #>
+    $headers = [System.Collections.Generic.Dictionary[string, string]]::new()
+        
+    $bytes = [System.Text.Encoding]::ASCII.GetBytes("$($config.authorizationToken)")
+    $base64 = [System.Convert]::ToBase64String($bytes)
+    $headers.Add("Authorization", "Basic $($base64)")  
+
+    $headers.Add("Content-Type", "application/json; charset=utf-8")
+    $headers.Add("Accepts", "application/json; charset=utf-8")
+
+    #get departments:
+    $page = 0
+    $pagesize = 100
+    $responseDepartments = [System.Collections.Generic.List[PSCustomObject]]::new()
+
+    do {
+        $page++
         $splatGetDepartments = @{
-            Uri     = "$($config.BaseUrl)/api/v2/departments"
+            Uri     = "$($config.BaseUrl)/api/v2/departments?per_page=$pagesize&page=$page"
             Headers = $headers
             Method  = "GET"
         }
-        $responseDepartments = (Invoke-RestMethod @splatGetDepartments).departments
+        $responseDepartmentsPage = (Invoke-RestMethod @splatGetDepartments).departments
+        $responseDepartments += $responseDepartmentsPage 
 
-        foreach ($department in $rRef.sourceData) {
-            $targetDepartment = ($responseDepartments | Where-Object -Property name -eq $orgunit.DepartmentCode)
-            if ($null -eq $targetDepartment) {
-                $Body = @{
-                    name = "$($department)"
-                }
-                $jsonBody = ($Body | ConvertTo-Json  )
-                $encodedBytes = [System.Text.Encoding]::GetEncoding('iso-8859-1').GetBytes($jsonBody)
+        $departmentCount = ($responseDepartmentsPage | Measure-Object).count
+            
+    } until ($page -gt 10 -OR $departmentCount -lt $pagesize)
+
+
+    Write-Verbose -verbose "count: $(($responseDepartments | measure-object).count)"
+
+    foreach ($department in $rRef.sourceData) {
+
+        $targetDepartment = ($responseDepartments | Where-Object -Property name -eq $department.DisplayName)
+        if ($null -eq $targetDepartment) {
+            $Body = @{
+                name = "$($department.DisplayName)"
+            }
+            $jsonBody = ($Body | ConvertTo-Json  )
+            $encodedBytes = [System.Text.Encoding]::GetEncoding('iso-8859-1').GetBytes($jsonBody)
                 
-                $splatAddDepartmentRequest = @{
-                    Uri     = "$($config.BaseUrl)/api/v2/departments"
-                    Headers = $headers
-                    Method  = "POST"
-                    Body    = $encodedBytes
-                }
+            $splatAddDepartmentRequest = @{
+                Uri     = "$($config.BaseUrl)/api/v2/departments"
+                Headers = $headers
+                Method  = "POST"
+                Body    = $encodedBytes
+            }
+            if (-not ($dryRun -eq $true)) {
                 $responseAddDepartmentRequest = Invoke-RestMethod @splatAddDepartmentRequest
+            }
 
-                $auditLogs.Add([PSCustomObject]@{
-                        Message = "Created department [$($responseAddDepartmentRequest.department.name)], was successful. Id is: [$($responseAddDepartmentRequest.department.id)]"
-                        IsError = $false
-                    })
-            }           
+            $auditLogs.Add([PSCustomObject]@{
+                    Message = "Created department $($department.DisplayName) [$($department.ExternalID)] was successful. Id is: [$($responseAddDepartmentRequest.department.id)]"
+                    IsError = $false
+                })
         }
-        $success = $true
+        else {
+            Write-Verbose "Skipped creation - department [$($department.DisplayName)] found with ID: $($targetDepartment.id) "
+
+        }    
     }
+    $success = $true
 }
 # End
 catch {
