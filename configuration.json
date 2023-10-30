@@ -1,33 +1,43 @@
 [
     {
-        "key": "authorizationToken",
-        "type": "input",
-        "defaultValue": "",
-        "templateOptions": {
-            "type": "password",
-            "label": "authorizationToken",
-            "description": "The authorization to connect to the API",
-            "required": true
-        }
+      "key": "authorizationToken",
+      "type": "input",
+      "defaultValue": "",
+      "templateOptions": {
+        "type": "password",
+        "label": "authorizationToken",
+        "description": "The authorization to connect to the API",
+        "required": true
+      }
     },
     {
-        "key": "BaseUrl",
-        "type": "input",
-        "defaultValue": "",
-        "templateOptions": {
-            "label": "BaseUrl",
-            "description": "The URL to the API.",
-            "required": true
-        }
+      "key": "BaseUrl",
+      "type": "input",
+      "defaultValue": "",
+      "templateOptions": {
+        "label": "BaseUrl",
+        "description": "The URL to the API.",
+        "required": true
+      }
     },
     {
-        "key": "IsDebug",
-        "type": "checkbox",
-        "defaultValue": true,
-        "templateOptions": {
-            "label": "Toggle debug logging",
-            "description": "When toggled, debug logging will be displayed",
-            "required": false
-        }
+      "key": "IsDebug",
+      "type": "checkbox",
+      "defaultValue": true,
+      "templateOptions": {
+        "label": "Toggle debug logging",
+        "description": "When toggled, debug logging will be displayed",
+        "required": false
+      }
+    },
+    {
+      "key": "skipCreation",
+      "type": "checkbox",
+      "defaultValue": false,
+      "templateOptions": {
+        "label": "disable creating requests",
+        "description": "When toggled, an onboarding request will NOT be created",
+        "required": false
+      }
     }
-]
+  ]
